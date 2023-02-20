@@ -1,0 +1,148 @@
+select* 
+from PortifolioProject..NachvilHousing
+--convert to date
+select SaleDateConvered, convert(date,SaleDate)
+from PortifolioProject..NachvilHousing
+
+--update sale date 
+update NachvilHousing
+set SaleDate=convert(date,SaleDate)
+
+alter table NachvilHousing
+add SaleDateConvered Date;
+update NachvilHousing
+set SaleDateConvered=convert(date,SaleDate)
+
+--proulate property address data
+select *
+from PortifolioProject..NachvilHousing
+--where PropertyAddress is  null
+order by ParcelID
+
+--join 
+select a.ParcelID,a.PropertyAddress,b.ParcelID,b.PropertyAddress , isnull(a.PropertyAddress,b.PropertyAddress )
+from PortifolioProject..NachvilHousing a
+join PortifolioProject..NachvilHousing b
+ON a.ParcelID=b.ParcelID
+and a.[UniqueID ]<> b.[UniqueID ]
+where a.PropertyAddress is null
+
+update a 
+set PropertyAddress=isnull(a.PropertyAddress,b.PropertyAddress )
+from PortifolioProject..NachvilHousing a
+join PortifolioProject..NachvilHousing b
+ON a.ParcelID=b.ParcelID
+and a.[UniqueID ]<> b.[UniqueID ]
+where a.PropertyAddress is null
+
+--breaking out  address into idvisual column (address,city,state)
+select PropertyAddress
+from PortifolioProject..NachvilHousing
+
+select
+SUBSTRING(PropertyAddress,1, CHARINDEX(',',PropertyAddress)-1) as Address
+, SUBSTRING(PropertyAddress, CHARINDEX(',',PropertyAddress)+1 ,len(propertyAddress)) as Address
+
+from PortifolioProject..NachvilHousing
+
+
+
+
+
+
+alter table NachvilHousing
+add propertySplitAddress varchar(255);
+
+
+update NachvilHousing
+set propertySplitAddress =SUBSTRING(PropertyAddress,1, CHARINDEX(',',PropertyAddress)-1) 
+
+alter table NachvilHousing
+add propertySplitCity varchar(255);
+
+
+update NachvilHousing
+set  propertySplitCity =SUBSTRING(PropertyAddress, CHARINDEX(',',PropertyAddress)+1 ,len(propertyAddress)) 
+
+select OwnerAddress
+from PortifolioProject..NachvilHousing
+
+select
+PARSENAME(Replace(OwnerAddress,',',','),3)
+,PARSENAME(Replace(OwnerAddress,',',','),2)
+,PARSENAME(Replace(OwnerAddress,',',','),1)
+from PortifolioProject..NachvilHousing
+
+
+alter table NachvilHousing
+add OwnerSplitAddress varchar(255);
+
+
+update NachvilHousing
+set  OwnerSplitAddress =PARSENAME(Replace(OwnerAddress,',',','),3)
+
+alter table NachvilHousing
+
+add  OwnerSplitState varchar(255);
+
+
+update NachvilHousing
+set  propertySplitState =PARSENAME(Replace(OwnerAddress,',',','),2) 
+
+
+alter table NachvilHousing
+
+add  OwnerSplitCity varchar(255);
+
+
+update NachvilHousing
+set  propertySplitCity =PARSENAME(Replace(OwnerAddress,',',','),1) 
+
+
+select distinct(SoldAsVacant),count(SoldAsVacant)
+from PortifolioProject..NachvilHousing
+group by SoldAsVacant
+order by 2
+
+
+select SoldAsVacant 
+, case when SoldAsVacant = 'Y' then 'Yes'
+       when SoldAsVacant= 'N' then 'No'
+       else SoldAsVacant
+       end 
+from PortifolioProject..NachvilHousing
+
+update NachvilHousing 
+set  SoldAsVacant= case when SoldAsVacant = 'Y' then 'Yes'
+       when SoldAsVacant= 'N' then 'No'
+       else SoldAsVacant
+       end 
+from PortifolioProject..NachvilHousing
+with RownumCTE as (
+select*,
+ROW_NUMBER() over (partition by
+                   ParcelID,
+				   PropertyAddress,
+				   SalePrice,
+				   SaleDate,
+				   LegalReference
+				   order by UniqueID
+				   )Row_num
+				   
+from PortifolioProject..NachvilHousing
+--order by ParclID
+)
+select*
+from RownumCTE 
+where Row_num>1
+--order by PropertyAddress
+
+select*
+from PortifolioProject..NachvilHousing
+    
+	-- delete column unuse
+		alter table PortifolioProject..NachvilHousing
+		drop column OwnerAddress,TaxDistrict,PropertyAddress
+
+		alter table PortifolioProject..NachvilHousing
+		drop column  SaleDate
